@@ -1,0 +1,22 @@
+<extend name="../base" />
+<block name="title">
+	<title>Planing</title>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="btn btn-info" id="back">back</div>
+			<div class="withborder">
+				<div class="planing withborder">
+					<div class="planing-context">
+						<h2>{$result.plan_title}</h2>
+						<blockquote>
+							<small>{$result.user_id}</small>
+							<h4>{$result.plan_text}</h4>
+						</blockquote>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</block>

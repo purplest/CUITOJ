@@ -1,0 +1,975 @@
+<extend name="../base" />
+<block name="title">
+	<title>Contest</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var contest_id={$cid}, filter_pid=null, filter_user=null, filter_res=null, filter_lang=null;
+	var contestProblem=null;
+	
+	function get_current_contest_id(){
+		var spit = location.href.split("/");
+		var tmp = spit[7].split("#");
+		var cid = tmp[0];
+		return cid;
+	}
+	
+	$(function(){
+		$("nav ul.nav li").eq(2).addClass("active");
+		$("#tabs a").click(function(e){
+			$(this).tab('show');
+		});
+		
+		$(window).hashchange(function(){
+			var tag = self.document.location.hash.substr(1);
+			filter_pid=null, filter_user=null, filter_res=null, filter_lang=null;
+			if (tag==""||tag=="info"){
+				$("#contest_nav li").removeClass("active").filter("#info").addClass("active");
+				show_contest_info();
+			}
+			else if (tag.substr(0,7)=="problem"){
+				$("#contest_nav li").removeClass("active").filter("#problem").addClass("active");
+				var id = tag.substr(8);
+				if (id==""){
+					id = "A";
+				}
+				show_contest_problem(id);
+			}
+			else if (tag=="status"){
+				$("#contest_nav li").removeClass("active").filter("#status").addClass("active");
+				show_contest_status();
+			}
+			else if (tag=="standing"){
+				$("#contest_nav li").removeClass("active").filter("#standing").addClass("active");
+				show_contest_standing();
+			}
+			else if (tag=="edit"){
+				$("#contest_nav li").removeClass("active").filter("#edit").addClass("active");
+				show_contest_edit();
+			}
+			else if (tag=="change"){
+				$("#contest_nav li").removeClass("active").filter("#change").addClass("active");
+				show_contest_change();
+			}
+			else if (tag=="clarify"){
+				$("#contest_nav li").removeClass("active").filter("#clarify").addClass("active");
+				show_contest_clarify();
+			}
+		});
+		
+		$(window).hashchange();
+		
+		$(document).on("click","input.datetimepicker",function(){
+			$(this).datetimepicker("show");
+		});
+		
+		$(document).on("click","button#StatusFilter",function(){
+			filter_pid = $("div.filter div.pid button").text().trim()
+			filter_user = $("div.filter input[name='user']").val();
+			filter_res = $("div.filter div.result button").text().trim();
+			filter_lang = $("div.filter div.lang button").text().trim();
+			if (filter_user=="")
+				filter_user=null;
+			if (filter_pid=="All problem")
+				filter_pid=null;
+			else
+				filter_pid=filter_pid.substring(0,1).charCodeAt()-'A'.charCodeAt()+1;
+			filter_res=opin_res[filter_res];
+			filter_lang=opin_lang[filter_lang];
+			var pages = get_totPages(contest_id);
+			initPage(pages);
+			listPage(1);
+		});
+		
+		$(document).on("click","div[class*='btn'][id='change']",function(){
+			var title = $("input[type='text'][id='contestTitle']").val();
+			var start = $("input[type='text'][id='startTime']").val();
+			var end = $("input[type='text'][id='endTime']").val();
+			var spit = location.href.split("/");
+			var id= spit[spit.length-1];
+			if (title.length==0||start.length==0||end.length==0){
+				alert("error");
+			}
+			else{
+				var json = JSON.stringify(new ChangeContestTitleAndTimeBean(id,title,start,end));
+				$.ajax({
+					type: "post",
+					url: "/OnlineJudge/contest/change_contest_time",
+					data: json,
+					contentType:'application/json',
+					dataType: 'json',
+					success: function(data){
+						if (data=="success"){
+							alert("Success to change contest time");
+							location.hash="#info";
+						}
+						else {
+							alert("Failed to change contest time");
+						}
+					}
+				});
+			}
+		});
+		
+		$(document).on("click","div[class*='btn'][id='setPro']",function(){
+			var cid= get_current_contest_id();
+			var pro = $("div.contestFrame div.row input");
+			var list = new Array();
+			for ( var i = 0, k = 0 ; i < pro.length ; i++ ){
+				if (false==isNaN(pro[i].value)&&pro[i].value>0){
+					list[k] = pro[i].value;
+					k++;
+				}
+			}
+			var json = JSON.stringify(new EditContestProblemBean(cid,list));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/contest/set_contest_problem",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						alert("Success to change contest problem");
+					}
+					else {
+						alert("Failed to change contest problem");
+					}
+				}
+			});
+		});
+		
+		$("div[class*='dialog-button'][id='submitprb']").click(function(){
+			$("div[id='submit-alert-detail']").html("<strong>Validing your submission</strong>");
+			$("div[class*='alert'][id='submit-alert']").removeClass('hide');
+			$("div[class*='dialog-button'][id='submitprb']").button('loading');
+			var sourceCode = $("div[id='submit-dialog'] textarea").val();
+			var spit = location.href.split("/");
+			var hash = self.document.location.hash.substr(1);
+			if (hash.length==7)
+				var problemID = 1;
+			else var problemID = hash.substr(8).charCodeAt()-"A".charCodeAt()+1;
+			var cid = get_current_contest_id();
+			var langID = opin_lang[$("div#submit-dialog div.modal-body button").text().trim()];
+			var json = JSON.stringify(new SubmitContestProblemBean(sourceCode,problemID,cid,langID));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/contest/submit_problem",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						$("div[id='submit-alert']").removeClass('alert-info').addClass('alert-success');
+						$("div[id='submit-alert-detail']").html("success");
+						$("div[id='submit-dialog'] textarea").val("");
+						$("div[id='submit-dialog']").modal('toggle');
+						self.document.location.hash="#status";
+					}
+					else{
+						$("div[id='submit-alert']").removeClass('alert-info').addClass('alert-error');
+						$("div[id='submit-alert-detail']").html(data);
+					}
+					$("div[class*='dialog-button'][id='submitprb']").button('reset');
+				}
+			});
+		})
+		
+		$("div[class*='dialog-button'][id='reset']").click(function(){
+			$("div[id='submit-dialog'] textarea").val("");
+		})
+		
+		$(document).on("click","div[class*='btn'][id='submit']",function(){
+			$("div[class*='alert'][id='submit-alert']").addClass('hide');
+			$("div[id='submit-dialog']").modal('toggle');
+		});
+		
+		$(document).on("click","div[class*='btn'][id='status']",function(){
+			location.hash="#status";
+			location.search="?problemID=A";
+		});
+		
+		$(document).on("click","#submit-dialog li",function(){
+			var str =$(this).text().trim();
+			str+="<span class='caret'></span>";
+			$("div#submit-dialog div.modal-body button").html(str);
+		});
+		
+		$(document).on("click","#clarify-dialog div[class*='btn'][id='new-clarify']",function(){
+			var cid = get_current_contest_id();
+			var question = $("textarea[id='clarify-context']").val();
+			var json = JSON.stringify(new ClarifyBean(question,cid,0));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/Clarify/add_clarify",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if ("success"==data){
+	// 					$("div[id='clarify-dialog']").modal('toggle');
+						$("textarea[id='clarify-context']").val("");
+						show_contest_clarify();
+					}
+					else{
+						alert(data);
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","#answer-clarify-dialog div[class*='btn'][id='answer-clarify']",function(){
+				var cid = get_current_contest_id();
+				var clarify_id = this.className.substr(29);
+				$(this).removeClass(clarify_id);
+				var answer =  $("textarea[id='answer-context']").val();
+				var json = JSON.stringify(new ClarifyBean(answer,cid,clarify_id));
+				$.ajax({
+					type: "post",
+					url: "/OnlineJudge/Clarify/modify_clarify",
+					data: json,
+					contentType:'application/json',
+					dataType: 'json',
+					success: function(data){
+						if ("success"==data){
+							$("div[id='answer-clarify-dialog']").modal('toggle');
+							$("textarea[id='answer-context']").val("");
+							show_contest_clarify();
+						}
+						else{
+							alert(data);
+						}
+					}
+				});
+		});
+		
+		$(document).on("click","div[class*='btn'][id='delete-clarify']",function(){
+			var cid = get_current_contest_id();
+			var clarify_id = this.className.substr(4);
+			var answer =  $("textarea[id='answer-context'][class='"+clarify_id+"']").val();
+			var json = JSON.stringify(new ClarifyBean(answer,cid,clarify_id));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/Clarify/modify_clarify",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if ("success"==data){
+						show_contest_clarify();
+					}
+					else{
+						alert(data);
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","div[class*='btn'][id='show-new-clarify']",function(){
+			$("div[id='clarify-dialog']").modal('toggle');
+		});
+		
+		$(document).on("click","div[class*='btn'][id='answer-clarify']",function(){
+			$("div[id='answer-clarify-dialog']").modal('toggle');
+			var clarify_id = this.className.substr(4);
+			$("#answer-clarify-dialog div[class*='btn'][id='answer-clarify']").addClass(clarify_id);
+		});
+		
+		$(document).on("click","div[class*='btn'][id='public-clarify']",function(){
+			var clarify_id = this.className.substr(4);
+			var json = JSON.stringify(new ClarifyBean(0,0,clarify_id));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/Clarify/public_clarify",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if ("success"==data){
+						show_contest_clarify();
+					}
+					else{
+						alert(data);
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","button.contestProblemDel",function(){
+			$(this).parent().parent().remove();
+			var cur = $(this).parent().parent().find("label").text().trim().substring(8);
+			$("div.contestFrame div.row label").each(function(){
+				if ($(this).text().trim().substring(8)>cur){
+					var now = $(this).text().trim().substring(8);
+					var str = "problem "+String.fromCharCode(now.charCodeAt()-1);
+					$(this).text(str);
+				}
+			});
+			contestProblem--;
+		});
+		
+		$(document).on("click","button.contestProblemAdd",function(){
+			var str="";
+			str+="<div class='row'>";
+			str+="	<div class='col-sm-4 col-sm-offset-1'>";
+			str+="		<form class='form-horizontal' role='form'>";
+			str+="			<div class='form-group'>";
+			str+="				<label class='col-sm-5 control-label'>problem "+String.fromCharCode(contestProblem+"A".charCodeAt())+"</label>";
+			str+="				<div class='col-sm-7'><input type='text' class='form-control' value='0'></div>";
+			str+="			</div>";
+			str+="		</form>";
+			str+="	</div>";
+			str+="	<div class='col-sm-7'>";
+			str+="		<button type='button' class='btn btn-success contestProblemAdd'>Add</button>";
+			str+="		<button type='button' class='btn btn-danger contestProblemDel'>Del</button>";
+			str+="	</div>";
+			str+="</div>";
+			contestProblem++;
+			$("div.contestFrame").append(str);
+		});
+	});
+	
+function show_contest_info(){
+	var cid = get_current_contest_id();
+	$.post("/OnlineJudge/contest/show_contest_info","cid="+cid,function(data){
+		var date = JSON.parse(data);
+		var str="";
+		str +="<table align='center'>";
+		str +="    <tbody>";
+		str +="        <tr><th>Contest start time:"+date['info'].contest_start_time+"</th></tr>";
+		str +="        <tr><th>Contest end time:"+date['info'].contest_end_time+"</th></tr>";
+		str +="    </tbody>";
+		str +="</table>";
+		str+="<table class='table table-hover'>";
+		str+="	<thead >";
+		str+="		<tr>";
+		str+="			<th>Problem ID</th>";
+		str+="			<th>Title</th>";
+		str+="			<th>Radio</th>";
+		str+="		</tr>";
+		str+="	</thead>";
+		str+="	<tbody class='listInfo'>";
+		var start_time = Date.parse(new Date(date['info'].contest_start_time))/1000;
+		var now_time = Date.parse(new Date())/1000;
+		if ( now_time >= start_time && null!=date['detal']){
+			for ( var i = 0 ; i < date['detal'].length ; i++ ){
+				if (date['detal'][i]['problem_id']>0){
+					str += "<tr>";
+					str += "<th><a href='/OnlineJudge/contest/show_contest/id/"+cid+"#problem/"+String.fromCharCode(i+"A".charCodeAt())+"'>"+String.fromCharCode(i+"A".charCodeAt())+"</a></th>";
+					str += "<th><a href='/OnlineJudge/contest/show_contest/id/"+cid+"#problem/"+String.fromCharCode(i+"A".charCodeAt())+"'>"+date['detal'][i]['problem_title']+"</a></th>";
+					str += "<th>"+date['detal'][i]['contest_problem_tot_ac']+"/"+date['detal'][i]['contest_problem_tot_submit']+"</th>";
+					str += "</tr>";
+				}
+			}
+		}
+		str+="	</tbody>";
+		str+="</table>";
+		show(str);
+	})
+}
+
+function show_contest_problem(id){
+	var str = "";
+	var cid = get_current_contest_id();
+	var json = JSON.stringify(new GetContestProblemBean(cid,id.charCodeAt()-"A".charCodeAt()+1));
+	$.ajax({
+		type: "post",
+		url: "/OnlineJudge/contest/get_contest_problem",
+		data: json,
+		contentType:'application/json',
+		dataType: 'json',
+		success: function(data){
+			date = JSON.parse(data);
+			str+="<ul class='nav nav-pills' id='problem_nav'>";
+			if (null!=date['list']){
+				for ( var i = 0 ; i < date['list'].length ; i++ ){
+					if (date['list'][i]['problem_id']>0){
+						var ch = String.fromCharCode(i+"A".charCodeAt());
+						str+="<li";
+						if (date['id']==i+1){
+							str+=" class='active'";
+						}
+						str+="><a href='#problem/"+ch+"'>"+ch+"</a></li>";
+					}
+				}
+				str+="</ul>";
+				str+="<div class='problem_desc'>";
+				str+="<div class='problemTitle center'>";
+				str+="	<h2>"+String.fromCharCode(date['id']-1+"A".charCodeAt())+". "+date['detial']['problem_title']+"</h2>";
+				str+="</div>";
+				str+="<div class='problemLimit'>";
+				str+="	<table align='center'>";
+				str+="	<tr>";
+				str+="		<th><span class='label label-info'>Time Limit: "+date['detial']['problem_time']+"MS</span></th>";
+				str+="		<th><span class='label label-info'>Memory Limit: "+date['detial']['problem_memory']+"KB</span></th>";
+				str+="	</tr>";
+				str+="	</table>";
+				str+="</div>";
+				str+="<h3>Description</h3>";
+				str+="<div class='problemDesc ProblemFrame'>";
+				str+=	date['detial']['problem_desc'];
+				str+="</div>";
+				str+="<h3>Input</h3>";
+				str+="<div class='problemInput ProblemFrame'>";
+				str+=	date['detial']['problem_input'];
+				str+="</div>";
+				str+="<h3>Output</h3>";
+				str+="<div class='problemOutput ProblemFrame'>";
+				str+=	date['detial']['problem_output'];
+				str+="</div>";
+				str+="<h3>Sample Input</h3>";
+				str+="<div class='problemSaminput ProblemFrame'>";
+				str+=	date['detial']['problem_saminput'];
+				str+="</div>";
+				str+="<h3>Sample Output</h3>";
+				str+="<div class='problemSamoutput ProblemFrame'>";
+				str+=	date['detial']['problem_samoutput'];
+				str+="</div>";
+				str+="<h3>Hit</h3>";
+				str+="<div class='problemHit ProblemFrame'>";
+				str+=	date['detial']['problem_hit'];
+				str+="</div>";
+				str+="<div class='button-div center'>";
+				str+="	<div class='btn btn-warning btn-divide' id='submit'>submit</div>";
+				str+="	<div class='btn btn-info btn-divide' id='status'>status</div>";
+				str+="</div>";
+			}
+			str+="</div>";
+			show(str);
+		}
+	});
+}
+
+function show_contest_status(){
+	$.post("/OnlineJudge/contest/show_contest_info","cid="+contest_id,function(data){
+		var date = JSON.parse(data);
+		var str="";
+		str+="<div class='filter row'>";
+		str+="	<div class='col-sm-2 col-sm-offset-1 pid'>";
+		str+="		<div class='btn-group'>";
+		str+="		  <button type='button' class='btn btn-default dropdown-toggle' data-toggle='dropdown'>";
+		str+="			All problem<span class='caret'></span>";
+		str+="		  </button>";
+		str+="		  <ul class='dropdown-menu' role='menu'>";
+		str+="			<li><a>All problem</a></li>";
+		var start_time = Date.parse(new Date(date['info'].contest_start_time))/1000;
+		var now_time = Date.parse(new Date())/1000;
+		if ( now_time >= start_time && null!=date['detal']){
+			for ( var i = 0 ; i < date['detal'].length ; i++ ){
+				if (date['detal'][i]['problem_id']>0){
+					str+="			<li><a>"+String.fromCharCode(i+"A".charCodeAt())+". "+date['detal'][i]['problem_title']+"</a></li>";
+				}
+			}
+		}
+		str+="		  </ul>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="	<div class='col-sm-2'>";
+		str+="	  <input type='text' class='form-control' placeholder='Username' name='user'>";
+		str+="	</div>";
+		str+="	<div class='col-sm-3 result'>";
+		str+="		<div class='btn-group'>";
+		str+="		  <button type='button' class='btn btn-default dropdown-toggle' data-toggle='dropdown'>";
+		str+="			All result <span class='caret'></span>";
+		str+="		  </button>";
+		str+="		  <ul class='dropdown-menu' role='menu'>";
+		str+="			<li><a>All result</a></li>";
+		str+="			<li><a>Accepted</a></li>";
+		str+="			<li><a>Compiled Error</a></li>";
+		str+="			<li><a>Time Limit Exceeded</a></li>";
+		str+="			<li><a>Wrong Answer</a></li>";
+		str+="			<li><a>Output Limit Exceeded</a></li>";
+		str+="			<li><a>Runtime Error</a></li>";
+		str+="			<li><a>Presentation Error</a></li>";
+		str+="			<li><a>Memory Limit Exceeded</a></li>";
+		str+="			<li><a>Send To Judge</a></li>";
+		str+="			<li><a>Judge Error</a></li>";
+		str+="			<li><a>Restricted Function</a></li>";
+		str+="		  </ul>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="	<div class='col-sm-2 lang'>";
+		str+="	 <div class='btn-group'>";
+		str+="		  <button type='button' class='btn btn-default dropdown-toggle' data-toggle='dropdown'>";
+		str+="			All language <span class='caret'></span>";
+		str+="		  </button>";
+		str+="		  <ul class='dropdown-menu' role='menu'>";
+		str+="			<li><a>All language</a></li>";
+		str+="			<li><a>GNU G++</a></li>";
+		str+="			<li><a>GNU GCC</a></li>";
+		str+="			<li><a>Jave</a></li>";
+		str+="		  </ul>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="	<div class='col-sm-2'>";
+		str+="		<button class='btn btn-primary' id='StatusFilter'>filter</button>";
+		str+="	</div>";
+		str+="</div>";
+		str+="<div class='page'>";
+		str+="</div>";
+		str+="<table class='table table-hover'>";
+		str+="	<thead>";
+		str+="		<tr>";
+		str+="			<th>User</th>";
+		str+="			<th>Problem</th>";
+		str+="			<th>result</th>";
+		str+="			<th>language</th>";
+		str+="			<th>time</th>";
+		str+="			<th>memory</th>";
+		str+="			<th>length</th>";
+		str+="			<th>submit time</th>";
+		str+="		</tr>";
+		str+="	</thead>";
+		str+="	<tbody class='listStatus'>";
+		str+="	</tbody>";
+		str+="</table>";
+		show(str);
+		preStatus();
+	});
+}
+
+function preStatus(){
+	var str = decodeURI(window.location.search.substring(1));
+	var arr = str.split("&");
+	for (i in arr){
+		var param = arr[i].split("=");
+		if (param[0].trim()=="problemID")
+			filter_pid = $("div.filter div.pid button").html(param[1].trim()+"<span class='caret'></span>");
+		else if (param[0].trim()=="username")
+			filter_pid = $("div.filter input[name='user']").val(param[1].trim());
+		else if (param[0].trim()=="result")
+			filter_pid =  $("div.filter div.result button").html(param[1].trim()+"<span class='caret'></span>");
+		else if (param[0].trim()=="language")
+			filter_pid =  $("div.filter div.lang button").html(param[1].trim()+"<span class='caret'></span>");
+	}
+	$("button#StatusFilter").trigger('click');
+}
+
+function get_totPages(){
+	var cid = get_current_contest_id();
+	var totPages;
+	$.ajax({
+		type: "post",
+		url: "/OnlineJudge/contest/count_status_page",
+		data: "cid="+cid,
+		async: false,
+		dataType: 'json',
+		success: function(data){
+			totPages = data;
+		}
+	});
+	return totPages;
+}
+
+function listPage(start){
+	var json = JSON.stringify(new ListStatusBean(0,contest_id,filter_pid,filter_user,filter_res,filter_lang));
+	$.ajax({
+		type: "post",
+		url: "/OnlineJudge/contest/get_contest_status",
+		data: json,
+		contentType:'application/json',
+		dataType: 'json',
+		success: function(data){
+			showListStatus(data,contest_id);
+		}
+	});
+}
+
+function showListStatus(data,cid){
+	var str="";
+	var date = JSON.parse(data);
+	var list = date['status'];
+	for ( var i = 0 ; i < list.length ; i++ ){
+		str += "<tr>";
+		str += "<th><a href='/OnlineJudge/user/show_user/name/"+list[i].user_username+"'>"+list[i].user_username+"</a></th>";
+		str += "<th><a href='/OnlineJudge/contest/show_contest/id/"+cid+"#problem/"+String.fromCharCode(list[i].problem_id-1+"A".charCodeAt())+"'>"+String.fromCharCode(list[i].problem_id-1+"A".charCodeAt())+"</a></th>";
+		if (list[i].status_result=="Compiled Error"){
+			str += "<th class='linkable font-color-"+list[i].color+"'><div class='showCEreason "+list[i].status_id+"'>"+list[i].status_result+"<div></th>";
+		}
+		else {
+			str += "<th class='font-color-"+list[i].color+"'>"+list[i].status_result+"</th>";
+		}
+		if (list[i].user_id==date['userID']||date['userPower']>2){
+			str += "<th class='linkable'><div class='showSourcesCode "+list[i].status_id+"'>"+list[i].status_language+"<div></th>";
+		}
+		else{
+			str += "<th>"+list[i].status_language+"</th>";
+		}
+		str += "<th>"+list[i].status_time+" ms</th>";
+		str += "<th>"+list[i].status_memory+" KB</th>";
+		if (list[i].user_id==date['userID']||date['userPower']>2){
+			str += "<th class='linkable'><div class='showSourcesCode "+list[i].status_id+"'>"+list[i].status_length+"<div></th>";
+		}
+		else{
+			str += "<th>"+list[i].status_length+"</th>";
+		}
+		str += "<th>"+list[i].status_subtime+"</th>";
+		str += "</tr>";
+	}
+	$("tbody[class='listStatus']").html(str);
+}
+
+var cmp = function(){
+	return function(a, b){
+		if (a[0][0]==b[0][0]){
+			return a[0][1]-b[0][1];
+		}
+		else{
+			return b[0][0]-a[0][0];
+		} 
+	}
+}
+
+function show_contest_standing(){
+	var cid = get_current_contest_id();
+	$.post("/OnlineJudge/contest/get_contest_standing","cid="+cid,function(data){
+		var list = JSON.parse(data);
+		var start_time = Date.parse(new Date(list['start_time']))/1000;
+		var summary = new Array();
+		if (list['status']!=null){
+			for ( var i = 0 ; i < list['status'].length ; i++ ){
+				var cur = list['status'][i];
+				if (null==summary[cur['user_id']]){
+					summary[cur['user_id']] = new Array();
+					summary[cur['user_id']]['username']=cur['user_username'];
+					for ( var th = 0 ; th < list['count'] ; th++ ){
+						summary[cur['user_id']][th] = new Array();
+						summary[cur['user_id']][th][0]=0;
+						summary[cur['user_id']][th][1]=0;
+					}
+				}
+				if (summary[cur['user_id']][cur['problem_id']][0]==0){
+					var time = Date.parse(new Date(cur['status_subtime']))/1000;
+					if (cur['status_result']==6){
+						summary[cur['user_id']][cur['problem_id']][0]=time;
+					}
+					summary[cur['user_id']][cur['problem_id']][1]++;
+				}
+			}
+			for ( var i = 1 ; i < summary.length ; i++ ){
+				if (null!=summary[i]){
+					for ( var j = 1 ; j < list['count'] ; j++ ){
+						if (summary[i][j][0]>0){
+							summary[i][0][0]++;
+							summary[i][j][0]-=start_time
+							summary[i][0][1]+=(summary[i][j][1]-1)*20*60+summary[i][j][0];
+						}
+					}
+				}
+			}
+			summary.sort(cmp());
+		}
+		var str = "";
+		str+="<table class='table table-hover rank'>";
+		str+="	<thead >";
+		str+="		<tr>";
+		str+="		    <th class='rank_row'>Rank</th>";
+		str+="			<th class='user_row'>User</th>";
+		str+="			<th class='penalty_row'>ACs</th>";
+		str+="			<th class='penalty_row'>Penalty</th>";
+		if (null!=list['status']){
+			for ( var i = 1 ; i < list['count'] ; i++ ){
+				str+="			<th class='problem_row'>"+String.fromCharCode(i-1+"A".charCodeAt())+"</th>";
+			}
+		}
+		str+="		</tr>";
+		str+="	</thead>";
+		for ( var i = 0 ; i < summary.length; i++ ){
+			if (null!=summary[i]){
+				str += "<tr>";
+				str += "<th>"+(i+1)+"</th>";
+				str += "<th><a href='/OnlineJudge/user/show_user/name/"+summary[i]['username']+"'>"+summary[i]['username']+"</a></th>";
+				str += "<th>"+summary[i][0][0]+"</th>";
+				str += "<th>"+Math.floor(summary[i][0][1]/60)+"</th>";
+				for ( var j = 1 ; j < list['count'] ; j++ ){
+					if (summary[i][j][0]>0){
+						str += "<th class='ac_state'>"+Math.floor(summary[i][j][0]/60)+" ("+(summary[i][j][1]-1)+")</th>";
+					}
+					else{
+						if (summary[i][j][1]>0){
+							str += "<th class='notac_state'>";
+							str += "(-"+summary[i][j][1]+")";
+						}
+						else{
+							str += "<th>";
+						}
+						str += "</th>";
+					}
+				}
+				str += "</tr>";
+			}
+		}
+		str+="	<tbody class='listRank'>";
+		show(str);
+	})
+}
+
+function show_contest_clarify(){
+	var cid = get_current_contest_id();
+	var json = JSON.stringify(new listBean(0,cid));
+	var str="";
+	str+="<div class='btn' id='show-new-clarify'>Post new</div>";
+	str+="	<div class='listClarify'>";
+	str+="	</div>";
+	show(str);
+	$.ajax({
+		type: "post",
+		url: "/OnlineJudge/Clarify/list_clarify",
+		data: json,
+		contentType:'application/json',
+		dataType: 'json',
+		success: function(data){
+			showListClarify(data);
+		}
+	});
+}
+
+function showListClarify(data){
+	if (""!=data){
+		var date = JSON.parse(data);
+		var list = date['list'];
+		if (list!=null){
+			var str="";
+			for ( var i = 0 ; i < list.length ; i++ ){
+				if (""==list[i].clarify_answer){
+					list[i].clarify_answer="No answer with this question now, please waiting for admin to answer it.";
+				}
+				str+="<div class='well well-small clarify-well'>";
+				str+="<dl><dt>question:</dt><dd>"+list[i].clarify_question+"</dd>";
+				str+="<dt>answer:</dt><dd>"+list[i].clarify_answer+"</dd></dl>";
+				if (date['show_add']){
+					str+="<div class='btn "+list[i].clarify_id+"' id='answer-clarify'>answer</div>";
+					str+="<div class='btn "+list[i].clarify_id+"' id='public-clarify'>public</div>";
+				}
+				str+="</div>";
+			}
+		}
+	}
+	$("div[class='listClarify']").html(str);
+}
+
+function show_contest_edit(){
+	var cid = get_current_contest_id();
+	var json = JSON.stringify(new GetContestProblemBean(cid,0));
+	$.ajax({
+		type: "post",
+		url: "/OnlineJudge/contest/get_contest_problem",
+		data: json,
+		contentType:'application/json',
+		dataType: 'json',
+		success: function(data){
+			var str = "<div class='contestFrame'>";
+			date = JSON.parse(data);
+			contestProblem = 0;
+			if (date!=null){
+				for ( var i = 0 ; i < date.length ; i++ )
+					if (date[i]['problem_id']>0) {
+						str+="<div class='row'>";
+						str+="	<div class='col-sm-4 col-sm-offset-1'>";
+						str+="		<form class='form-horizontal' role='form'>";
+						str+="			<div class='form-group'>";
+						str+="				<label class='col-sm-5 control-label'>problem "+String.fromCharCode(i+"A".charCodeAt())+"</label>";
+						str+="				<div class='col-sm-7'><input type='text' class='form-control' value="+date[i]['problem_id']+"></div>";
+						str+="			</div>";
+						str+="		</form>";
+						str+="	</div>";
+						str+="	<div class='col-sm-7'>";
+						str+="		<button type='button' class='btn btn-success contestProblemAdd'>Add</button>";
+						str+="		<button type='button' class='btn btn-danger contestProblemDel'>Del</button>";
+						str+="	</div>";
+						str+="</div>";
+						contestProblem++;
+					}
+			}
+			if(contestProblem==0) {
+				contestProblem = 1;
+				str+="<div class='row'>";
+				str+="	<div class='col-sm-4 col-sm-offset-1'>";
+				str+="		<form class='form-horizontal' role='form'>";
+				str+="			<div class='form-group'>";
+				str+="				<label class='col-sm-5 control-label'>problem A</label>";
+				str+="				<div class='col-sm-7'><input type='text' class='form-control' value='0'></div>";
+				str+="			</div>";
+				str+="		</form>";
+				str+="	</div>";
+				str+="	<div class='col-sm-7'>";
+				str+="		<button type='button' class='btn btn-success contestProblemAdd'>Add</button>";
+				str+="		<button type='button' class='btn btn-danger contestProblemDel'>Del</button>";
+				str+="	</div>";
+				str+="</div>";
+			}
+			str+="</div>";
+			str+="<div class='center'>"
+			str+="	<div class='btn btn-warning' id='setPro'>submit</div>";
+			str+="</div>";
+			show(str);
+		}
+	});
+}
+
+function show_contest_change(){
+	var str = "";
+	str+="<div class='row'>";
+	str+="	<div class='col-sm-5 col-sm-offset-1'>";
+	str+="		<form class='form-horizontal' role='form'>";
+	str+="			<div class='form-group'>";
+	str+="			  <label class='col-sm-2 control-label' for='contestTitle'>Title</label>";
+	str+="			  <div class='col-sm-10'>";
+	str+="				<input type='text' class='form-control reg' id='contestTitle' placeholder='New Title'>";
+	str+="			  </div>";
+	str+="			</div>";
+	str+="			<div class='form-group'>";
+	str+="			  <label class='col-sm-2 control-label' for='startTime'>startTime</label>";
+	str+="			  <div class='col-sm-10'>";
+	str+="				<input type='text' class='form-control reg datetimepicker' id='startTime' placeholder='Contest start time'>";
+	str+="			  </div>";
+	str+="			</div>";
+	str+="			<div class='form-group'>";
+	str+="			  <label class='col-sm-2 control-label' for='endTime'>endTime</label>";
+	str+="			  <div class='col-sm-10'>";
+	str+="				<input type='text' class='form-control reg datetimepicker' id='endTime' placeholder='Contest end time'>";
+	str+="			  </div>";
+	str+="			</div>";
+	str+="		  <div class='button-div center'>";
+	str+="			  <div class='btn btn-warning' id='change'>change</div>";
+	str+="			  <div class='btn btn-info' id='reset'>reset</div>";
+	str+="		  </div>";
+	str+="		</form>";
+	str+="	</div>";
+	str+="</div>";
+	show(str);
+}
+
+function show(data){
+	var str="<div class='control-group withborder wall'>";
+	str+=data;
+	str +="</div>";
+	$("#contest-frame").html(str);
+}
+
+	</script>
+</block>
+<block name="dialog">
+	<!-- Modal -->
+		<div class="modal fade" id="submit-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="ModalLabel">Submit your solution</h3>
+				</div>
+				<div class="modal-body">
+					<div class="center-block center">
+						Language:
+						<div class="btn-group">
+							<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+							    GNU G++ <span class="caret"></span>
+							  </button>
+							<ul class="dropdown-menu" role="menu">
+								<li><a>GNU G++</a></li>
+								<li><a>GNU GCC</a></li>
+								<li><a>Java</a></li>
+							</ul>
+						</div>
+					</div>
+					<h5 class="center">Code:</h5>
+					<textarea class="form-control"></textarea>
+				</div>
+				<div class="modal-footer">
+					<div class="alert alert-info span4" id="submit-alert">
+						<div id="submit-alert-detail"></div>
+					</div>
+					<div class="btn dialog-button btn-danger" id="submitprb">submit</div>
+					<div class="btn dialog-button btn-primary" id="reset">reset</div>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	<!-- Modal -->
+	<div class="modal fade" id="showCode-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="regModalLabel">Your Submission</h4>
+				</div>
+				<div class="modal-body">
+					<h5 class="center">Code:</h5>
+					<textarea readonly="true" class="form-control"></textarea>
+				</div>
+				<div class="modal-footer">
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	<!-- Modal -->
+	<div class="modal fade" id="showCEreason-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="regModalLabel">Compiled Error</h4>
+				</div>
+				<div class="modal-body">
+					<textarea readonly="true" class="form-control"></textarea>
+				</div>
+				<div class="modal-footer">
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	<div id="clarify-dialog" class="modal hide fade" aria-hidden="true">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+			<h3 id="ModalLabel">Post new clarify</h3>
+		</div>
+		<div class="modal-body">
+			<h5 class="center">Your question:</h5>
+			<textarea id='clarify-context' class="form-control"></textarea>
+		</div>
+		<div class="button-div modal-footer">
+			<div class="btn dialog-button btn-danger" id="new-clarify">submit</div>
+			<div class="btn dialog-button btn-primary" id="reset-clarify">reset</div>
+		</div>
+	</div>
+	<div id="answer-clarify-dialog" class="modal hide fade" aria-hidden="true">
+		<div class="modal-header">
+			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+			<h3 id="ModalLabel">Answer the clarify</h3>
+		</div>
+		<div class="modal-body">
+			<h5 class="center">Answer:</h5>
+			<textarea id='answer-context' class="form-control"></textarea>
+		</div>
+		<div class="button-div modal-footer">
+			<div class="btn dialog-button btn-danger" id="answer-clarify">submit</div>
+			<div class="btn dialog-button btn-primary" id="reset-answer-clarify">reset</div>
+		</div>
+	</div>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="tabs">
+				<ul class="nav nav-tabs" id="contest_nav">
+					<li id="info"><a href="#info">Over view</a></li>
+					<li id="problem"><a href="#problem">Problem</a></li>
+					<li id="status"><a href="#status">Status</a></li>
+					<li id="standing"><a href="#standing">Standing</a></li>
+					<li id="clarify"><a href="#clarify">Clarify</a></li>
+					<eq name="Think.session.userID" value="$owner">
+						<li id="edit"><a href="#edit">Edit Problem</a></li>
+						<li id="change"><a href="#change">Change Time</a></li>
+					<else/>
+						<gt name="Think.session.userPower" value="2">
+							<li id="edit"><a href="#edit">Edit Problem</a></li>
+							<li id="change"><a href="#change">Change Time</a></li>
+						</gt>
+					</eq>
+				</ul>
+			</div>
+			<div id="contest-frame">
+			</div>
+		</div>
+	</div>
+</block>

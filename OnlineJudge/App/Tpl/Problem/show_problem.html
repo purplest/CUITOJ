@@ -1,0 +1,151 @@
+<extend name="../base" />
+<block name="title">
+	<title>Problem</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var problemID={$result.problem_id}, vjudge={$result.problem_vjudge};
+	$(function() {
+		$("nav ul.nav li").eq(1).addClass("active");
+		if (vjudge>0)
+		{
+			var str = "<span class='label label-warning'>This problem will judge on "+vjudge_detial[vjudge]+".</span>";
+			$("#judgeTarget").html(str);
+		}
+		
+		$("div[class*='btn'][id='status']").click(function(){
+			location.href="/OnlineJudge/status?problemID="+problemID;
+		})
+		
+		$("div[class*='dialog-button'][id='submitprb']").click(function(){
+			$("div[id='submit-alert-detail']").html("<strong>Validing your submission</strong>");
+			$("div[class*='alert'][id='submit-alert']").removeClass('hide');
+			$("div[class*='dialog-button'][id='submitprb']").button('loading');
+			var sourceCode = $("div[id='submit-dialog'] textarea").val();
+			var langID = opin_lang[$("div#submit-dialog div.modal-body button").text().trim()];
+			var json = JSON.stringify(new SubmitProblemBean(sourceCode,problemID,langID));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/problem/submit_problem",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						$("div[id='submit-alert']").removeClass('alert-info').addClass('alert-success');
+						$("div[id='submit-alert-detail']").html("success");
+						location.href="/OnlineJudge/status";
+					}
+					else{
+						$("div[id='submit-alert']").removeClass('alert-info').addClass('alert-error');
+						$("div[id='submit-alert-detail']").html(data);
+					}
+					$("div[class*='dialog-button'][id='submitprb']").button('reset');
+				}
+			});
+		})
+		
+		$("div[class*='dialog-button'][id='reset']").click(function(){
+			$("div[id='submit-dialog'] textarea").val("");
+		})
+		
+		$("div[class*='btn'][id='submit']").click(function(){
+			$("div[class*='alert'][id='submit-alert']").addClass('hide');
+			$("div[id='submit-dialog']").modal('toggle');
+		});
+		
+		$("div#submit-dialog li").click(function(){
+			var str =$(this).text().trim();
+			str+="<span class='caret'></span>";
+			$("div#submit-dialog div.modal-body button").html(str);
+		})
+	});
+	</script>
+</block>
+<block name="dialog">
+	<!-- Modal -->
+	<div class="modal fade" id="submit-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="ModalLabel">Submit your solution</h3>
+				</div>
+				<div class="modal-body">
+					<div class="center-block center">
+						Language:
+						<div class="btn-group">
+							<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+							    GNU G++ <span class="caret"></span>
+							  </button>
+							<ul class="dropdown-menu" role="menu">
+								<li><a>GNU G++</a></li>
+								<li><a>GNU GCC</a></li>
+								<li><a>Java</a></li>
+							</ul>
+						</div>
+					</div>
+					<h5 class="center">Code:</h5>
+					<textarea></textarea>
+				</div>
+				<div class="modal-footer">
+					<div class="alert alert-info span4" id="submit-alert">
+						<div id="submit-alert-detail"></div>
+					</div>
+					<div class="btn dialog-button btn-danger" id="submitprb">submit</div>
+					<div class="btn dialog-button btn-primary" id="reset">reset</div>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="problemTitle center">
+				<h2>{$result.problem_title}</h2>
+			</div>
+			<div class="problemLimit">
+				<table align="center">
+					<gt name="Think.session.userID" value="0">
+						<tr>
+							<th colspan="2" id="judgeTarget" class="center"></th>
+						</tr>
+					</gt>
+				<tr>
+					<th><span class="label label-info">Time Limit: {$result.problem_time}MS</span></th>
+					<th><span class="label label-info">Memory Limit: {$result.problem_memory}KB</span></th>
+				</tr>
+				<tr>
+					<th>Accepted: {$result.problem_AC}</th>
+					<th>Total Submissions: {$result.problem_ALL}</th>
+				</tr>
+				</table>
+			</div>
+			<h3>Description</h3>
+			<div class="problemDesc ProblemFrame">
+				{$result.problem_desc}
+			</div>
+			<h3>Input</h3>
+			<div class="problemInput ProblemFrame">
+				{$result.problem_input}
+			</div>
+			<h3>Output</h3>
+			<div class="problemOutput ProblemFrame">
+				{$result.problem_output}
+			</div>
+			<h3>Sample Input</h3>
+			<div class="problemSaminput ProblemFrame">
+				{$result.problem_saminput}
+			</div>
+			<h3>Sample Output</h3>
+			<div class="problemSamoutput ProblemFrame">
+				{$result.problem_samoutput}
+			</div>
+			<div class="button-div center">
+				<div class="btn btn-danger btn-divide" id="submit">submit</div>
+				<div class="btn btn-primary btn-divide" id="status">status</div>
+			</div>
+		</div>
+	</div>
+</block>

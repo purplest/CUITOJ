@@ -1,0 +1,80 @@
+<extend name="../base" />
+<block name="title">
+	<title>Problem</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var totPage = {$totPage}, length = 10;
+	
+	$(function() {
+		$("nav ul.nav li").eq(1).addClass("active");
+		$(document).on("click","#search",function(){
+			initPage(totPage);
+			listPage(1);
+		});
+		$("#search").trigger('click');
+	});
+	
+	function get_totPages(cur){
+		return totPage;
+	}
+	
+	function listPage(start){
+		var json = JSON.stringify(new listProblemBean(start,length));
+		$.ajax({
+			type: "post",
+			url: "/OnlineJudge/Problem/list_problem",
+			data: json,
+			contentType:'application/json',
+			dataType: 'json',
+			success: function(data){
+				showListProblem(data);
+			}
+		});
+	}
+	
+	function showListProblem(data){
+		var str = "";
+		var list = JSON.parse(data);
+		for ( var i = 0 ; i < list.length ; i++ ){
+			str += "<tr>";
+			str += "<th>"+list[i].problem_id+"</th>";
+			str += "<th><a href=/OnlineJudge/problem/show_problem/id/"+list[i].problem_id+">"+list[i].problem_title+"<a></th>";
+			str += "<th>"+list[i].problem_sources+"</th>";
+			str += "<th>"+list[i].problem_AC+"/"+list[i].problem_ALL+"</th>";
+			str += "</tr>";
+		}
+		$("tbody[class='listProblem']").html(str);
+	}
+	</script>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="search row">
+				<div class="col-sm-4 col-sm-offset-8">
+					<div class='form-inline'>
+					  <div class='form-group'>
+					    <input type='text' class='form-control' placeholder='Search'>
+					  </div>
+					  <button type="button" class='btn btn-default' id="search">Search</button>
+					</div>
+				</div>
+			</div>
+			<div class="page">
+			</div>
+			<table class="table table-hover">
+				<thead >
+					<tr>
+						<th>ProblemID</th>
+						<th>Title</th>
+						<th>Sources</th>
+						<th>Radio</th>
+					</tr>
+				</thead>
+				<tbody class="listProblem">
+				</tbody>
+			</table>
+		</div>
+	</div>
+</block>

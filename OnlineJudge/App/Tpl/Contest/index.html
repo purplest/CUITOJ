@@ -1,0 +1,186 @@
+<extend name="../base" />
+<block name="title">
+	<title>Contest</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var totPage = {$totPage}, length = 10;
+	
+	$(function() {
+		$("nav ul.nav li").eq(2).addClass("active");
+		
+		$(document).on("click","#search",function(){
+			initPage(totPage);
+			listPage(1);
+		});
+		$("#search").trigger('click');
+		
+		$("input[class*='datetimepicker']").datetimepicker({
+			format: "yyyy-mm-dd  hh:ii",
+			todayBtn: true
+		});
+		
+		$("#addNewContest").click(function() {
+			$("div[id='add-contest-dialog']").modal('toggle');
+		});
+		
+		$("div[class*='btn'][id='contest-submit']").click(function(){
+			var title = $("#title").val();
+			var start = $("#start").val();
+			var end = $("#end").val();
+			if (title.length==0||start.length==0||end.length==0){
+				alert("error");
+			}
+			else{
+				var json = JSON.stringify(new NewContestBean(title,start,end));
+				$.ajax({
+					type: "post",
+					url: "/OnlineJudge/contest/add_contest",
+					data: json,
+					contentType:'application/json',
+					dataType: 'json',
+					success: function(data){
+						if (data=="success"){
+							alert("Success to add contest");
+							listPage(1);
+							$("#title").val("");
+							$("#start").val("");
+							$("#end").val("");
+							$("#add-contest-dialog").modal("toggle");
+						}
+						else {
+							alert("Failed to add contest");
+						}
+					}
+				});
+			}
+		});
+	});
+	
+	function get_totPages(cur){
+		return totPage;
+	}
+	
+	function listPage(start){
+		var json = JSON.stringify(new listContestBean(start,length));
+		$.ajax({
+			type: "post",
+			url: "/OnlineJudge/contest/list_contest",
+			data: json,
+			contentType:'application/json',
+			dataType: 'json',
+			success: function(data){
+				showListContest(data);
+			}
+		});
+	}
+	
+	function showListContest(data){
+		var str="";
+		var list = JSON.parse(data);
+		if (list!=null){
+			var nowDate = new Date();
+			var now_time = nowDate.getTime()/1000;
+			for ( i in list){
+				str+="<tr>";
+				str+="<th>"+list[i].contest_id+"</th>";
+				str+="<th><a href='/OnlineJudge/contest/show_contest/id/"+list[i].contest_id+"'>"+list[i].contest_title+"</a></th>";
+				str+="<th>"+list[i].contest_start_time+"</th>";
+				str+="<th>"+list[i].contest_end_time+"</th>";
+				str+="<th>";
+				var start_time = Date.parse(list[i].contest_start_time)/1000;
+				var end_time = Date.parse(list[i].contest_end_time)/1000;
+				if (now_time<start_time){
+					str+="Schedule";
+				}
+				else if (start_time<=now_time&&now_time<=end_time){
+					str+="Running";
+				}
+				else if (now_time>end_time){
+					str+="Ended";
+				}
+				str+="</th>";
+				str+="<th>"+list[i].user_username+"</th>";
+				str+="</tr>"
+			}
+		}
+		$("tbody[class='listContest']").html(str);
+	}
+	</script>
+</block>
+<block name="dialog">
+		<!-- Modal -->
+	<div class="modal fade" id="add-contest-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+					<h3 id="ModalLabel">arrange new contest</h3>
+				</div>
+				<div class="modal-body">
+					<form class="form-horizontal" role="form">
+						<div class="form-group">
+						  <label class="col-sm-3 control-label col-sm-offset-1" for="title">Title</label>
+						  <div class="col-sm-6">
+							<input type="text" class="form-control" id="title" placeholder="Title">
+						  </div>
+						</div>
+						<div class="form-group">
+						  <label class="col-sm-3 control-label col-sm-offset-1" for="start">Start Time</label>
+						  <div class="col-sm-6">
+							<input type="text" class="form-control datetimepicker" id="start" placeholder="Start Time">
+						  </div>
+						</div>
+						<div class="form-group">
+						  <label class="col-sm-3 control-label col-sm-offset-1" for="end">End Time</label>
+						  <div class="col-sm-6">
+							<input type="text" class="form-control datetimepicker" id="end" placeholder="End Time">
+						  </div>
+						</div>
+					</form>
+				</div>
+				<div class="modal-footer">
+					<div class="btn btn-danger" id="contest-submit">submit</div>
+					<div class="btn btn-primary" id="contest-reset">reset</div>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="search row">
+				<div class="col-sm-2">
+					<gt name="Think.session.userPower" value="2">
+						<button class="btn btn-info" id="addNewContest">arrange new contest</button>
+					</gt>
+				</div>
+				<div class="col-sm-4 col-sm-offset-6">
+					<div class='form-inline'>
+					  <div class='form-group'>
+					    <input type='text' class='form-control' placeholder='Search'>
+					  </div>
+					  <button type="button" class='btn btn-default' id="search">Search</button>
+					</div>
+				</div>
+			</div>
+			<div class="page">
+			</div>
+			<table class="table table-hover">
+				<thead >
+					<tr>
+						<th>CID</th>
+						<th>Title</th>
+						<th>Start Time</th>
+						<th>End Time</th>
+						<th>Status</th>
+						<th>Owner</th>
+					</tr>
+				</thead>
+				<tbody class="listContest">
+				</tbody>
+			</table>
+		</div>
+	</div>
+</block>

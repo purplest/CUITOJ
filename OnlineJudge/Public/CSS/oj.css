@@ -1,0 +1,214 @@
+@CHARSET "UTF-8";
+body{
+	background-image: url(../Image/background.jpg);
+	background-repeat: repeat;
+}
+
+#body{
+	margin: 65px auto 10px auto;
+	width: 87%;
+}
+
+.user-state{
+	margin: 5px 5px 5px 5px;
+}
+
+.user-state input{
+	width: 90px;
+}
+
+.user-state .dropdown-toggle{
+	height: 20px;
+}
+
+.mainFrame{
+	margin:10px auto 10px auto;
+	padding:20px 20px 20px 20px;
+	width: auto;
+	height: auto;
+	background-color: #f7f7f9;
+	border: 1px solid #ddd;
+	border-radius: 20px;
+}
+
+.ProblemFrame{
+	margin: 10px auto 10px auto;
+	padding: 10px 10px 10px 10px;
+	width: auto;
+	height: auto;
+	background-color: #fff;
+	border: 1px solid #ddd;
+	border-radius: 10px;
+	font-family: "Courier New";
+}
+
+.withborder{
+	border: 1px solid #ddd;
+	border-radius: 10px;
+}
+
+.center{
+	text-align: center;
+}
+
+.table{
+	margin: 10px auto 10px auto;
+	border: 1px #ddd solid;
+}
+
+.btn-divide{
+	margin: auto 15px auto 15px;
+}
+
+#answer-clarify-dialog textarea,
+#clarify-dialog textarea,
+#submit-dialog textarea,
+#showCEreason-dialog textarea,
+#showCode-dialog textarea{
+	margin:auto 5% 10px 5%;
+	width: 90%;
+	height: 300px;
+}
+
+#submit-dialog textarea[readonly],
+#showCEreason-dialog textarea[readonly],
+#showCode-dialog textarea[readonly]{
+	cursor: auto;
+}
+
+div.button-div{
+	margin:15px auto 15px auto;
+}
+
+.navbar-fixed-top .container{
+	margin-left: 50px;
+	margin-right: 50px;
+	width: 90%;
+}
+
+.font-color-blue{
+	color: blue;
+}
+
+.font-color-black{
+	color: black;
+}
+
+.font-color-red{
+	color: red;
+}
+
+.font-color-green{
+	color: green;
+}
+
+#add-contest-dialog .wall{
+	width: 425px;
+	height: 390px;
+	margin: 10px 10px 5px 10px;
+	padding: 10px 10px 10px 10px;
+}
+
+#add-contest-dialog .left input{
+	display: inline-block;
+}
+
+.planing{
+	margin: 20px 20px 20px 20px;
+	padding: 10px 20px 10px 20px;
+}
+
+.planing .float-right{
+	float:right;
+}
+
+.planing .float-right a{
+	margin: auto 5px auto 5px;
+}
+
+#showPlaning{
+	margin: 20px 20px 20px 20px;
+}
+
+#showPlaning .PlaningDateDiv{
+	margin: auto 5px auto 5px;
+	display: inline-block;
+}
+
+#showPlaning .PlaningDateDiv .PlaningDate{
+	width:100px;
+}
+
+#showPlaning .PlaningDateDiv .toAnimate{
+	display: none;
+}
+
+#showPlaning .PlaningDateDiv .btn{
+	margin: auto 2px 9px 2px;
+}
+
+#contest-frame .problem_desc{
+	margin: 15px 15px 15px 15px;
+}
+
+.table .ac_state{
+	background: #6f6 !important;
+}
+
+.table .notac_state{
+	background: #f55 !important;
+}
+
+.rank{
+	width:auto;
+}
+
+.rank_row{
+	width: 40px;
+}
+
+.user_row{
+	width: 80px;
+}
+
+.penalty_row{
+	width: 40px;
+}
+
+.problem_row{
+	width: 50px;
+}
+
+.linkable{
+	cursor: pointer;
+}
+
+.filter,.search{
+	width: auto;
+	height: 30px;
+	margin: 10px;
+}
+
+.pagination{
+	margin: 10px auto 10px auto;
+}
+
+.admin-btn{
+	float: right;
+}
+
+.admin-menu{
+	margin: 5px;
+}
+
+.clear{
+	clear:both;
+	width:0;
+	height:0;
+	margin:0;
+	padding:0;
+}
+
+.float-left{
+	float: left;
+}

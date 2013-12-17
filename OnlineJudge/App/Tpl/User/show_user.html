@@ -1,0 +1,42 @@
+<extend name="../base" />
+<block name="title">
+	<title>View your profile</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	$(function() {
+		
+	});
+	</script>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<h4>Infomation of {$detal.user_username}</h4>
+			<table class="table table-hover">
+				<tbody class="list">
+					<tr>
+						<th>Username</th>
+						<th>{$detal.user_username}</th>
+					</tr>
+					<tr>
+						<th>User ID</th>
+						<th>{$detal.user_id}</th>
+					</tr>
+					<tr>
+						<th>Nickname</th>
+						<th>{$detal.user_nickname}</th>
+					</tr>
+					<tr>
+						<th>E-mail</th>
+						<th>{$detal.user_email}</th>
+					</tr>
+					<tr>
+						<th>Regist time</th>
+						<th>{$detal.user_regtime}</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</block>

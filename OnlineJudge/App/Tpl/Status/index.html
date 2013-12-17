@@ -1,0 +1,227 @@
+<extend name="../base" />
+<block name="title">
+	<title>Status</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var contest_id=0, filter_pid=null, filter_user=null, filter_res=null, filter_lang=null;
+	
+	function preStatus(){
+		var str = decodeURI(window.location.search.substring(1));
+		var arr = str.split("&");
+		for (i in arr){
+			var param = arr[i].split("=");
+			if (param[0].trim()=="problemID"&&!isNaN(param[1].trim()))
+				filter_pid = $("div.filter input[name='pid']").val(param[1].trim());
+			else if (param[0].trim()=="username")
+				filter_pid = $("div.filter input[name='user']").val(param[1].trim());
+			else if (param[0].trim()=="result")
+				filter_pid =  $("div.filter div.result button").html(param[1].trim()+"<span class='caret'></span>");
+			else if (param[0].trim()=="language")
+				filter_pid =  $("div.filter div.lang button").html(param[1].trim()+"<span class='caret'></span>");
+		}
+		$("button#StatusFilter").trigger('click');
+	}
+	
+	$(function() {
+		$("nav ul.nav li").eq(3).addClass("active");
+		$(document).on("click","button#StatusFilter",function(){
+			filter_pid = $("div.filter input[name='pid']").val();
+			filter_user = $("div.filter input[name='user']").val();
+			filter_res = $("div.filter div.result button").text().trim();
+			filter_lang = $("div.filter div.lang button").text().trim();
+			if (filter_user=="")
+				filter_user=null;
+			if (filter_pid=="")
+				filter_pid=null;
+			filter_res=opin_res[filter_res];
+			filter_lang=opin_lang[filter_lang];
+			var pages = get_totPages(contest_id);
+			initPage(pages);
+			listPage(1);
+		});
+		preStatus();
+	});
+	
+	function get_totPages($cid){
+		var totPages;
+		var json = JSON.stringify(new ListStatusBean(0,0,filter_pid,filter_user,filter_res,filter_lang));
+		$.ajax({
+			type: "post",
+			url: "/OnlineJudge/status/count_status_page",
+			async: false,
+			data: json,
+			contentType:'application/json',
+			dataType: 'json',
+			success: function(data){
+				totPages = data;
+			}
+		});
+		return totPages;
+	}
+	
+	function listPage(start){
+		var json = JSON.stringify(new ListStatusBean(start,contest_id,filter_pid,filter_user,filter_res,filter_lang));
+		$.ajax({
+			type: "post",
+			url: "/OnlineJudge/status/list_status",
+			data: json,
+			contentType:'application/json',
+			dataType: 'json',
+			success: function(data){
+				showListStatus(data);
+			}
+		});
+	}
+	
+	function showListStatus(data){
+		var str = "";
+		var date = JSON.parse(data);
+		var list = date['status'];
+		if (list==null){
+			str="No Such Status";
+		}
+		else{
+			for ( var i = 0 ; i < list.length ; i++ ){
+				str += "<tr>";
+				if (list[i].user_id==date['userID']||date['userPower']>0){
+					str += "<th class='linkable'><div class='showSourcesCode "+list[i].status_id+"'>"+list[i].status_id+"<div></th>";
+				}
+				else{
+					str += "<th>"+list[i].status_id+"</th>";
+				}
+				str += "<th><a href='/OnlineJudge/user/show_user/name/"+list[i].user_username+"'>"+list[i].user_username+"</a></th>";
+				str += "<th><a href='/OnlineJudge/problem/show_problem/id/"+list[i].problem_id+"'>"+list[i].problem_id+"</a></th>";
+				if (list[i].status_result=="Compiled Error"){
+					str += "<th class='linkable font-color-"+list[i].color+"'><div class='showCEreason "+list[i].status_id+"'>"+list[i].status_result+"<div></th>";
+				}
+				else {
+					str += "<th class='font-color-"+list[i].color+"'>"+list[i].status_result+"</th>";
+				}
+				if (list[i].user_id==date['userID']||date['userPower']>0){
+					str += "<th class='linkable'><div class='showSourcesCode "+list[i].status_id+"'>"+list[i].status_language+"<div></th>";
+				}
+				else{
+					str += "<th>"+list[i].status_language+"</th>";
+				}
+				str += "<th>"+list[i].status_time+" ms</th>";
+				str += "<th>"+list[i].status_memory+" KB</th>";
+				if (list[i].user_id==date['userID']||date['userPower']>0){
+					str += "<th class='linkable'><div class='showSourcesCode "+list[i].status_id+"'>"+list[i].status_length+"</div></th>";
+				}
+				else{
+					str += "<th>"+list[i].status_length+"</th>";
+				}
+				str += "<th>"+list[i].status_subtime+"</th>";
+				str += "</tr>";
+			}
+		}
+		$("tbody[class='listStatus']").html(str);
+	}
+	</script>
+</block>
+<block name="dialog">
+	<!-- Modal -->
+	<div class="modal fade" id="showCode-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="regModalLabel">Your Submission</h4>
+				</div>
+				<div class="modal-body">
+					<h5 class="center">Code:</h5>
+					<textarea readonly="true" class="form-control"></textarea>
+				</div>
+				<div class="modal-footer">
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	<!-- Modal -->
+	<div class="modal fade" id="showCEreason-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="regModalLabel">Compiled Error</h4>
+				</div>
+				<div class="modal-body">
+					<textarea readonly="true" class="form-control"></textarea>
+				</div>
+				<div class="modal-footer">
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="filter row">
+				<div class="col-sm-2 col-sm-offset-1">
+				  <input type="text" class="form-control" placeholder="Problem ID" name="pid">
+				</div>
+				<div class="col-sm-2">
+				  <input type="text" class="form-control" placeholder="Username" name="user">
+				</div>
+				<div class="col-sm-3 result">
+					<div class="btn-group">
+					  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+					    All result <span class="caret"></span>
+					  </button>
+					  <ul class="dropdown-menu" role="menu">
+					    <li><a>All result</a></li>
+						<li><a>Accepted</a></li>
+						<li><a>Compiled Error</a></li>
+						<li><a>Time Limit Exceeded</a></li>
+						<li><a>Wrong Answer</a></li>
+						<li><a>Output Limit Exceeded</a></li>
+						<li><a>Runtime Error</a></li>
+						<li><a>Presentation Error</a></li>
+						<li><a>Memory Limit Exceeded</a></li>
+						<li><a>Send To Judge</a></li>
+						<li><a>Judge Error</a></li>
+						<li><a>Restricted Function</a></li>
+					  </ul>
+					</div>
+				</div>
+				<div class="col-sm-2 lang">
+				 <div class="btn-group">
+					  <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+					    All language <span class="caret"></span>
+					  </button>
+					  <ul class="dropdown-menu" role="menu">
+					    <li><a>All language</a></li>
+					    <li><a>GNU G++</a></li>
+					    <li><a>GNU GCC</a></li>
+					    <li><a>Java</a></li>
+					  </ul>
+					</div>
+				</div>
+				<div class="col-sm-2">
+					<button class="btn btn-primary" id="StatusFilter">filter</button>
+				</div>
+			</div>
+			<div class="page">
+			</div>
+			<table class="table table-hover">
+				<thead >
+					<tr>
+						<th>RunID</th>
+						<th>User</th>
+						<th>PID</th>
+						<th>result</th>
+						<th>language</th>
+						<th>time</th>
+						<th>memory</th>
+						<th>length</th>
+						<th>submit time</th>
+					</tr>
+				</thead>
+				<tbody class="listStatus">
+				</tbody>
+			</table>
+		</div>
+	</div>
+</block>

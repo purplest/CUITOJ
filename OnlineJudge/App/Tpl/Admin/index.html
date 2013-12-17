@@ -1,0 +1,533 @@
+<extend name="../base" />
+<block name="title">
+	<title>Admin</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	var editor = new Array();
+	var list_user;
+	
+	$(function() {
+		$("#tabs a").click(function(e){
+			$(this).tab('show');
+		});
+		
+		$(window).hashchange(function(){
+			var tag = self.document.location.hash.substr(1);
+			if (tag==""||tag=="problem"){
+				$("#admin_nav li").removeClass("active").filter("#problem").addClass("active");
+				manage_problem();
+			}
+			else if (tag=="contest"){
+				$("#admin_nav li").removeClass("active").filter("#contest").addClass("active");
+				manage_contest();
+			}
+			else if (tag=="user"){
+				$("#admin_nav li").removeClass("active").filter("#user").addClass("active");
+				manage_user();
+			}
+			else if (tag=="run"){
+				$("#admin_nav li").removeClass("active").filter("#run").addClass("active");
+				manage_run();
+			}
+		});
+		
+		$(window).hashchange();
+		
+		$(document).on("click","div.admin-problem a",function(){
+			if ($(this).hasClass("active")){
+				return false;
+			}
+			else{
+				$("div.admin-problem a").each(function(){
+					$(this).removeClass("active");
+				});
+				$(this).addClass("active");
+				if (this.innerText[0]=="a"){
+					add_problem();
+				}
+				else{
+					modify_problem();
+				}
+			}
+		});
+		
+		$(document).on("click","div.admin-run a",function(){
+			if ($(this).hasClass("active")){
+				return false;
+			}
+			else{
+				$("div.admin-run a").each(function(){
+					$(this).removeClass("active");
+				});
+				$(this).addClass("active");
+				if (this.innerText[7]=="s"){
+					rejudges();
+				}
+				else{
+					rejudge();
+				}
+			}
+		});
+		
+		$(document).on("click","div.admin-user a",function(){
+			if ($(this).hasClass("active")){
+				return false;
+			}
+			else{
+				$("div.admin-user a").each(function(){
+					$(this).removeClass("active");
+				});
+				$(this).addClass("active");
+				if (this.innerText[0]=="a"){
+					add_list_user();
+				}
+				else{
+					modify_list_user();
+				}
+			}
+		});
+		
+		$(document).on("click","#addnew",function(){
+			for ( var i = 0 ; i < editor.length ; i++ ){
+				editor[i].sync();
+			}
+			var title = $("textarea[id='problem_title']").val();
+			var desc = $("textarea[id='problem_desc']").val();
+			var input = $("textarea[id='problem_input']").val();
+			var output = $("textarea[id='problem_output']").val();
+			var sa_in = $("textarea[id='problem_sa_in']").val();
+			var sa_out = $("textarea[id='problem_sa_out']").val();
+			var hit = $("textarea[id='problem_hit']").val();
+			var time = $("input[id='time']").val();
+			var memory = $("input[id='memory']").val();
+			var sources = $("input[id='sources']").val();
+			var author = $("input[id='author']").val();
+			var json = JSON.stringify(new addProblemBean(title,desc,input,output,sa_in,sa_out,time,memory,hit,sources,author));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/admin/add_problem",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						for ( var i = 0 ; i < editor.length ; i++ ){
+							editor[i].html("");
+						}
+						$("input[id='time']").val("");
+						$("input[id='memory']").val("");
+						$("input[id='sources']").val("");
+						$("input[id='author']").val("");
+						alert("Success to add");
+					}
+					else {
+						alert("Failed to add");
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","#modify-problem",function(){
+			for ( var i = 0 ; i < editor.length ; i++ ){
+				editor[i].sync();
+			}
+			var title = $("textarea[id='problem_title']").val();
+			var desc = $("textarea[id='problem_desc']").val();
+			var input = $("textarea[id='problem_input']").val();
+			var output = $("textarea[id='problem_output']").val();
+			var sa_in = $("textarea[id='problem_sa_in']").val();
+			var sa_out = $("textarea[id='problem_sa_out']").val();
+			var hit = $("textarea[id='problem_hit']").val();
+			var time = $("input[id='time']").val();
+			var memory = $("input[id='memory']").val();
+			var sources = $("input[id='sources']").val();
+			var author = $("input[id='author']").val();
+			var pid = $("input[type='text'][id='modify-pid']")[0].value
+			var json = JSON.stringify(new modifyProblemBean(pid,title,desc,input,output,sa_in,sa_out,time,memory,hit,sources,author));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/admin/modify_problem",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						alert("Success to modify");
+					}
+					else {
+						alert("Failed to modify");
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","#rejudge",function(){
+			var runID = $("input[type='text'][id='rejudgeID']")[0].value;
+			$.post("/OnlineJudge/problem/rejudge","runid="+runID,function(data){
+				if (data=="success"){
+					alert("send to rejudge");
+				}
+				else{
+					alert(data);
+				}
+			})
+		});
+		
+		$(document).on("click","#modify",function(){
+			var pid = $("input[type='text'][id='modify-pid']")[0].value;
+			$.post("/OnlineJudge/problem/get_problem","pid="+pid,function(data){
+				show_problem(data);
+			})
+		});
+		
+		$(document).on("click","#add_list_user",function(){
+			list_user.sync();
+			var user = $("textarea[id='list_user']").val();
+			var users = user.split(';');
+			var list = new Array();
+			for ( var i = 0 ; i < users.length ; i++ ){
+				var spit = users[i].split(',');
+				list[i]=new Array();
+				list[i][0]=spit[0];
+				list[i][1]=spit[1];
+			}
+			var json = JSON.stringify(new adminListUserBean(list));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/admin/add_list_user",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						alert("Success to add");
+					}
+					else {
+						alert("Failed to add");
+					}
+				}
+			});
+		});
+		
+		$(document).on("click","#modify_list_user",function(){
+			list_user.sync();
+			var user = $("textarea[id='list_user']").val();
+			var users = user.split(';');
+			var list = new Array();
+			for ( var i = 0 ; i < users.length ; i++ ){
+				var spit = users[i].split(',');
+				list[i]=new Array();
+				list[i][0]=spit[0];
+				list[i][1]=spit[1];
+			}
+			var json = JSON.stringify(new adminListUserBean(list));
+			$.ajax({
+				type: "post",
+				url: "/OnlineJudge/admin/modify_list_user",
+				data: json,
+				contentType:'application/json',
+				dataType: 'json',
+				success: function(data){
+					if (data=="success"){
+						alert("Success to modify");
+					}
+					else {
+						alert("Failed to modify");
+					}
+				}
+			});
+		});
+		
+	});
+	
+	function manage_problem(){
+		var str = "";
+		str+="<div class='row admin-menu'>";
+		str+="	<div class='list-group admin-problem col-sm-2'>";
+		str+="	  <a class='list-group-item active'>add</a>";
+		str+="	  <a class='list-group-item'>modify</a>";
+		str+="	</div>";
+		str+="	<div class='adminFrame col-sm-9'>";
+		str+="		<div id='show'>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="</div>";
+		show(str);
+		add_problem();
+	}
+	
+	function add_problem(){
+		var str = "";
+		str += "<table class='table table-hover add'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<th>Add the problem</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>time limits<input type='text' id='time'>MS</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>memory limits<input type='text' id='memory'>KB</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Title<textarea class='editor' id='problem_title'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Description<textarea class='editor' id='problem_desc'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Input<textarea class='editor' id='problem_input'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Output<textarea class='editor' id='problem_output'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Sample Input<textarea class='editor' id='problem_sa_in'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Sample Output<textarea class='editor' id='problem_sa_out'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>hit<textarea class='editor' id='problem_hit'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>sources<input type='text' id='sources'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>author<input type='text' id='author'></th>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		str += "<button class='btn btn-primary admin-btn' id='addnew'>submit</button>";
+		$("#show").html(str);
+		editor[0] = KindEditor.create('textarea[id="problem_title"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[1] = KindEditor.create('textarea[id="problem_desc"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[2] = KindEditor.create('textarea[id="problem_input"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[3] = KindEditor.create('textarea[id="problem_output"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[4] = KindEditor.create('textarea[id="problem_sa_in"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[5] = KindEditor.create('textarea[id="problem_sa_out"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[6] = KindEditor.create('textarea[id="problem_hit"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+	}
+	
+	function modify_problem(){
+		var str = "";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<th>modify the problem</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th><input type='text' id='modify-pid'><button class='btn btn-default' id='modify'>load</button></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>time limits<input type='text' id='time'>MS</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>memory limits<input type='text' id='memory'>KB</th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Title<textarea class='editor' id='problem_title'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Description<textarea class='editor' id='problem_desc'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Input<textarea class='editor' id='problem_input'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Output<textarea class='editor' id='problem_output'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Sample Input<textarea class='editor' id='problem_sa_in'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Sample Output<textarea class='editor' id='problem_sa_out'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>hit<textarea class='editor' id='problem_hit'></textarea></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>sources<input type='text' id='sources'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>author<input type='text' id='author'></th>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		str += "<button class='btn btn-primary admin-btn' id='modify-problem'>submit</button>";
+		$("#show").html(str);
+		editor[0] = KindEditor.create('textarea[id="problem_title"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[1] = KindEditor.create('textarea[id="problem_desc"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[2] = KindEditor.create('textarea[id="problem_input"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[3] = KindEditor.create('textarea[id="problem_output"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[4] = KindEditor.create('textarea[id="problem_sa_in"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[5] = KindEditor.create('textarea[id="problem_sa_out"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+		editor[6] = KindEditor.create('textarea[id="problem_hit"]',{
+			uploadJson:'/OnlineJudge/keditor/upload'
+		});
+	}
+	
+	function show_problem(data){
+		var date = JSON.parse(data);
+		editor[0].html(date['problem_title']);
+		editor[1].html(date['problem_desc']);
+		editor[2].html(date['problem_input']);
+		editor[3].html(date['problem_output']);
+		editor[4].html(date['problem_saminput']);
+		editor[5].html(date['problem_samoutput']);
+		editor[6].html(date['problem_hit']);
+		$("input[id='time']").val(date['problem_time']);
+		$("input[id='memory']").val(date['problem_memory']);
+		$("input[id='sources']").val(date['problem_sources']);
+		$("input[id='author']").val(date['problem_author']);
+	}
+	
+	function manage_contest(){
+		var str = "";
+		show(str);
+	}
+	
+	function manage_user(){
+		var str = "";
+		str+="<div class='row admin-menu'>";
+		str+="	<div class='list-group admin-user col-sm-2'>";
+		str+="	  <a class='list-group-item active'>add list user</a>";
+		str+="	  <a class='list-group-item'>modify list user</a>";
+		str+="	</div>";
+		str+="	<div class='adminFrame col-sm-9'>";
+		str+="		<div id='show'>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="</div>";
+		show(str);
+		add_list_user();
+	}
+	
+	function add_list_user(){
+		var str = "";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<td><textarea id='list_user'></textarea><button class='btn btn-primary' id='add_list_user'>add</button>";
+		str += "			</td>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		$("#show").html(str);
+		list_user = KindEditor.create('textarea[id="list_user"]');
+	}
+	
+	function modify_list_user(){
+		var str = "";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<td><textarea id='list_user'></textarea><button class='btn btn-primary' id='modify_list_user'>modify</button>";
+		str += "			</td>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		$("#show").html(str);
+		list_user = KindEditor.create('textarea[id="list_user"]');
+	}
+	
+	function manage_run(){
+		var str = "";
+		str+="<div class='row admin-menu'>";
+		str+="	<div class='list-group admin-run col-sm-2'>";
+		str+="	  <a class='list-group-item active'>rejudge</a>";
+		str+="	  <a class='list-group-item'>rejudges</a>";
+		str+="	</div>";
+		str+="	<div class='adminFrame col-sm-9'>";
+		str+="		<div id='show'>";
+		str+="		</div>";
+		str+="	</div>";
+		str+="</div>";
+		show(str);
+		rejudge();
+	}
+	
+	function rejudge(){
+		var str = "";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<td>rejudge status ID:<input type='text' id='rejudgeID'><button class='btn btn-primary' id='rejudge'>rejudge</button>";
+		str += "			</td>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		$("#show").html(str);
+	}
+	
+	function rejudges(){
+		var str = "";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<td>rejudge from:</td>";
+		str += "			<td><input type='text' id='rejudgeFrom'></td>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<td>rejudge to:</td>";
+		str += "			<td><input type='text' id='rejudgeTo'></td>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		str += "<button class='btn btn-primary' id='rejudges'>rejudge</button>";
+		$("#show").html(str);
+	}
+	
+	function show(data){
+		var str="<div class='control-group withborder wall'>";
+		str+=data;
+		str +="</div>";
+		$("#admin-frame").html(str);
+	}
+	</script>
+</block>
+<block name="dialog">
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="tabs">
+				<ul class="nav nav-tabs" id="admin_nav">
+					<li id="problem"><a href="#problem">problem</a></li>
+					<li id="contest"><a href="#contest">contest</a></li>
+					<li id="user"><a href="#user">user</a></li>
+					<li id="run"><a href="#run">run</a></li>
+				</ul>
+			</div>
+			<div id="admin-frame">
+			</div>
+		</div>
+	</div>
+</block>

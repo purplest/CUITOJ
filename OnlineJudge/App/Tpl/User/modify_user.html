@@ -1,0 +1,154 @@
+<extend name="../base" />
+<block name="title">
+	<title>Modify your profile</title>
+</block>
+<block name="js">
+	<script type="text/javascript">
+	$(function() {
+		
+		show_profile_page();
+		
+		$("#update_profile").livequery(function(){
+			$(this).click(function(){
+				var userid = $(".modify input[class='userid']")[0]['value'];
+				var nickname = $(".modify input[class='nickname']")[0]['value'];
+				var email = $(".modify input[class='email']")[0]['value'];
+				var json = JSON.stringify(new modifyUserProfile(userid,nickname,email));
+				$.ajax({
+					type: "post",
+					url: "/OnlineJudge/user/update_user_profile",
+					data: json,
+					contentType:'application/json',
+					dataType: 'json',
+					success: function(data){
+						if ("success"==data){
+							alert("success");
+						}
+					}
+				});
+			})
+		});
+		
+		$("#update_password").livequery(function(){
+			$(this).click(function(){
+				var userid = $(".modify input[class='userid']")[0]['value'];
+				var oldpd = $(".modify input[class='old']")[0]['value'];
+				var newpd = $(".modify input[class='new']")[0]['value'];
+				var repd = $(".modify input[class='re']")[0]['value'];
+				if (newpd==repd&&oldpd!=newpd){
+					var json = JSON.stringify(new modifyUserPassword(userid,oldpd,newpd,repd));
+					$.ajax({
+						type: "post",
+						url: "/OnlineJudge/user/update_user_password",
+						data: json,
+						contentType:'application/json',
+						dataType: 'json',
+						success: function(data){
+							if ("success"==data){
+								alert("success");
+								$(".modify input[class='old']")[0]['value']="";
+								$(".modify input[class='new']")[0]['value']="";
+								$(".modify input[class='re']")[0]['value']="";
+							}
+						}
+					});
+				}
+			})
+		});
+		
+		$("ul[class*='nav-list'] li").livequery(function(){
+			$(this).click(function(){
+				if ($(this).hasClass("active")){
+					return false;
+				}
+				else{
+					var array = $("ul[class*='nav-list'] li");
+					for ( var i = 0 ; i < array.length ; i++ ){
+						if ($(array[i]).hasClass("active")){
+							$(array[i]).removeClass("active");
+						}
+					}
+					$(this).addClass("active");
+					if (this.innerText[1]=="r"){
+						show_profile_page();
+					}
+					else{
+						show_password_page();
+					}
+				}
+			})
+		});
+	});
+	
+	function show_profile_page(){
+		var str="";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<th>Username</th>";
+		str += "			<th><input type='text' value='{$detal.user_username}' readonly='readonly'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>User ID</th>";
+		str += "			<th><input class='userid' type='text' value='{$detal.user_id}' readonly='readonly'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>Nickname</th>";
+		str += "			<th><input class='nickname' type='text' value='{$detal.user_nickname}'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>E-mail</th>";
+		str += "			<th><input class='email' type='text' value='{$detal.user_email}'></th>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		str += "<div class='btn' id='update_profile'>submit</div>";
+		$("#show").html(str);
+	}
+	
+	function show_password_page(){
+		var str="";
+		str += "<table class='table table-hover modify'>";
+		str += "	<tbody class='list'>";
+		str += "		<tr>";
+		str += "			<th>Username</th>";
+		str += "			<th><input type='text' value='{$detal.user_username}' readonly='readonly'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>User ID</th>";
+		str += "			<th><input class='userid' type='text' value='{$detal.user_id}' readonly='readonly'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>old password</th>";
+		str += "			<th><input class='old' type='password'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>new password</th>";
+		str += "			<th><input class='new' type='password'></th>";
+		str += "		</tr>";
+		str += "		<tr>";
+		str += "			<th>re-password</th>";
+		str += "			<th><input class='re' type='password'></th>";
+		str += "		</tr>";
+		str += "	</tbody>";
+		str += "</table>";
+		str += "<div class='btn' id='update_password'>submit</div>";
+		$("#show").html(str);
+	}
+	</script>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<h4>Modify the infomation</h4>
+			<ul class="nav nav-list pull-left">
+				<li class="nav-header">Modify your profile</li>
+				<li class="active"><a>profile</a></li>
+				<li><a>password</a></li>
+			</ul>
+			<div class="float-left" id="show">	
+			</div>
+			<div class="clear"></div>
+		</div>
+	</div>
+</block>

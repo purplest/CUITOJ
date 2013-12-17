@@ -1,0 +1,28 @@
+<extend name="../base" />
+<block name="title">
+	<title>Planing</title>
+</block>
+<block name="body">
+	<div id="body" class="container">
+		<div class="mainFrame">
+			<div class="btn btn-info" id="back">back</div>
+			<div class="withborder">
+				<h3 class="center">The task planing of {$result[0][nickname]}</h3>
+				<foreach name="result" item="val">
+					<div class="planing withborder">
+						<div class='float-right'>
+							<a href="/OnlineJudge/planing/show_planing/id/{$val.plan_id}">detial</a>
+						</div>
+						<div class="planing-context">
+							<h2>{$val.plan_title}</h2>
+							<blockquote>
+								<small>{$val.nickname}</br>post at:{$val.plan_date}</small>
+								<h4>{$val.plan_text}</h4>
+							</blockquote>
+						</div>
+					</div>
+				</foreach>
+			</div>
+		</div>
+	</div>
+</block>

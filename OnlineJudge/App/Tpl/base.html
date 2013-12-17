@@ -1,0 +1,129 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<block name="title"></block>
+	<!-- css-->
+	<link href="/OnlineJudge/Public/CSS/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+	<link href="/OnlineJudge/Public/CSS/oj.css" rel="stylesheet" type="text/css"/>
+	<link href="/OnlineJudge/Public/CSS/datetimepicker.css" rel="stylesheet" type="text/css"/>
+	<!-- JavaScripts-->
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/jquery-2.0.3.min.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/json2.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/beans.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/public.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/login.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/status.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/jquery.ba-hashchange.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/kindeditor/kindeditor.js"></script>
+	<script type="text/javascript" src="/OnlineJudge/Public/JS/bootstrap-datetimepicker.js"></script>
+	<block name="js"></block>
+</head>
+<body>
+	
+	<!-- Modal -->
+	<div class="modal fade" id="register-dialog" tabindex="-1" role="dialog" aria-labelledby="regModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+					<h4 class="modal-title" id="regModalLabel">Register</h4>
+				</div>
+				<div class="modal-body">
+					<form class="form-horizontal" role="form">
+						<div class="form-group">
+						  <label class="col-sm-2 control-label col-sm-offset-1" for="RegUsername">Username</label>
+						  <div class="col-sm-7">
+						    <input type="text" class="form-control reg" id="RegUsername" placeholder="Username">
+						  </div>
+						</div>
+						<div class="form-group">
+						  <label class="col-sm-2 control-label col-sm-offset-1" for="RegPassword">Password</label>
+						  <div class="col-sm-7">
+						    <input type="password" class="form-control reg" id="RegPassword" placeholder="Password">
+						  </div>
+						</div>
+						<div class="form-group">
+						  <label class="col-sm-2 control-label col-sm-offset-1" for="RegNickname">Nickname</label>
+						  <div class="col-sm-7">
+						    <input type="text" class="form-control reg" id="RegNickname" placeholder="Nickname">
+						  </div>
+						</div>
+						<div class="form-group">
+						  <label class="col-sm-2 control-label col-sm-offset-1" for="RegEmail">E-mail</label>
+						  <div class="col-sm-7">
+						    <input type="email" class="form-control reg" id="RegEmail" placeholder="E-mail">
+						  </div>
+						</div>
+					</form>	
+				</div>
+				<div class="modal-footer">
+					<div class="alert alert-info span4" id="reg-alert">
+						<div id="reg-alert-detail"><strong></strong></div>
+					</div>
+					<div class="btn btn-danger" id="dialog-register">submit</div>
+					<div class="btn btn-primary" id="dialog-reg-reset">reset</div>
+				</div>
+			</div><!-- /.modal-content -->
+		</div><!-- /.modal-dialog -->
+	</div><!-- /.modal -->
+	
+	<block name="dialog"></block>
+	<nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+		<!-- Brand and toggle get grouped for better mobile display -->
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+			  <span class="sr-only">Toggle navigation</span>
+			  <span class="icon-bar"></span>
+			  <span class="icon-bar"></span>
+			  <span class="icon-bar"></span>
+			</button>
+		  <a class="navbar-brand" href="/OnlineJudge/index">OnlineJudge</a>
+		</div>
+		<!-- Collect the nav links, forms, and other content for toggling -->
+		<div class="collapse navbar-collapse">
+		  <ul class="nav navbar-nav">
+		    <li><a href="/OnlineJudge/index">Home</a></li>
+			<li><a href="/OnlineJudge/problem">Problem</a></li>
+			<li><a href="/OnlineJudge/contest">Contest</a></li>
+			<li><a href="/OnlineJudge/status">Status</a></li>
+		  </ul>
+		  <gt name="Think.session.userID" value="0">
+		  	<div class="navbar-right navbar-btn">
+				<div class="btn-group">
+					<button type="button" class="btn btn-primary" id="show_user">{$Think.session.username}</button>
+					<button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+						<span class="caret"></span>
+						<span class="sr-only">Toggle Dropdown</span>
+					</button>
+					<ul class="dropdown-menu" role="menu">
+						<li><a href="/OnlineJudge/user/show_user/name/{$Think.session.username}">Detial</a></li>
+						<li><a href="/OnlineJudge/user/modify_user/name/{$Think.session.username}">Modify</a></li>
+						<gt name="Think.session.userPower" value="2">
+							<li class="divider"></li>
+							<li><a href="/OnlineJudge/admin">Make admin</a></li>
+						</gt>
+					</ul>
+				</div>
+				<button type="button" class="btn btn-primary" id="logout">logout</button>
+			</div>
+		  <else/>
+			  <form class="navbar-form navbar-right" role="form">
+			    <div class="form-group">
+					<input type="text" class="form-control" name="user" placeholder="Enter Your Username">
+				</div>
+				<div class="form-group">
+					<input type="password" class="form-control" name="pswd" placeholder="Password">
+			    </div>
+				<button class="btn btn-primary" id="login">login</button>
+				<button class="btn btn-primary" id="register">register</button>
+			  </form>
+		  </gt>
+		</div>
+		<!-- /.navbar-collapse -->
+		
+	</nav>
+	<block name="body"></block>
+</body>
+</html>
